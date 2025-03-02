@@ -4,6 +4,7 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
 using System.Text;
+using System.Text.RegularExpressions;
 
 public class ChatGPTObjectCreator : EditorWindow
 {
@@ -88,12 +89,12 @@ public class ChatGPTObjectCreator : EditorWindow
 
         GameObject newObject = null;
         
-        if (chatGPTText.Contains("Create a cube"))
+        if (chatGPTText.Contains("cube"))
         {
             newObject = GameObject.CreatePrimitive(PrimitiveType.Cube);
             newObject.name = "AI_Cube";
         }
-        else if (chatGPTText.Contains("Create a sphere"))
+        else if (chatGPTText.Contains("sphere"))
         {
             newObject = GameObject.CreatePrimitive(PrimitiveType.Sphere);
             newObject.name = "AI_Sphere";
@@ -108,21 +109,46 @@ public class ChatGPTObjectCreator : EditorWindow
         if (newObject != null)
         {
             newObject.transform.position = Vector3.zero;
-            
-            if (chatGPTText.Contains("red"))
+            AssignColorFromText(newObject, chatGPTText);
+        }
+    }
+
+    private void AssignColorFromText(GameObject obj, string text)
+    {
+        Renderer renderer = obj.GetComponent<Renderer>();
+        if (renderer == null) return;
+        
+        Color objectColor = Color.white; // Default color
+        string colorName = ExtractColorFromText(text);
+        
+        if (ColorUtility.TryParseHtmlString(colorName, out Color parsedColor))
+        {
+            objectColor = parsedColor;
+        }
+        else
+        {
+            Debug.LogWarning("Could not parse color: " + colorName);
+        }
+        
+        Material material = new Material(Shader.Find("Universal Render Pipeline/Lit"));
+        if (material == null)
+        {
+            material = new Material(Shader.Find("Standard")); // Fallback
+        }
+        material.color = objectColor;
+        renderer.material = material;
+    }
+
+    private string ExtractColorFromText(string text)
+    {
+        string[] colors = { "red", "green", "blue", "yellow", "cyan", "magenta", "black", "white", "gray", "orange", "purple", "pink" };
+        foreach (string color in colors)
+        {
+            if (text.ToLower().Contains(color))
             {
-                Renderer renderer = newObject.GetComponent<Renderer>();
-                if (renderer != null)
-                {
-                    Material redMaterial = new Material(Shader.Find("Universal Render Pipeline/Lit"));
-                    if (redMaterial == null)
-                    {
-                        redMaterial = new Material(Shader.Find("Standard")); // Fallback for built-in pipeline
-                    }
-                    redMaterial.color = Color.red;
-                    renderer.material = redMaterial;
-                }
+                return color;
             }
         }
+        return "white"; // Default if no color is found
     }
 }
